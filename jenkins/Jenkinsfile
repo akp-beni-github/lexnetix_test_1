@@ -1,0 +1,50 @@
+pipeline {
+    agent any
+
+    environment {
+        REPO_URL = 'https://github.com/akp-beni-github/lexnetix_test_1.git' 
+        IMAGE_NAME = 'my_image'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    // Pull the latest code from the main branch
+                    git branch: 'main', url: "${REPO_URL}"
+                }
+            }
+        }
+
+        stage('Get Commit ID') {
+            steps {
+                script {
+                    // Get the first 5 characters of the git commit ID
+                    COMMIT_ID = sh(script: 'git rev-parse --short=5 HEAD', returnStdout: true).trim()
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    dir('node') {
+                        sh "docker --version"
+                        // Specify the build context ('.' for the current directory)
+                        sh "docker build -t ${IMAGE_NAME}:${COMMIT_ID} ."
+                        sh "docker images"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Docker image built successfully!'
+        }
+        failure {
+            echo 'Pipeline failed.'
+        }
+    }
+}
